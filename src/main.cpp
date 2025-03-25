@@ -115,7 +115,7 @@ void GLAPIENTRY DebugMessageCallback(
     std::cout << "OpenGL Message:" << type << debugMessageStream.str() << std::endl;
 }
 
-void renderTriangle()
+void renderTriangle(float rot)
 {
   // put in onstart()
   float vertices[] = {
@@ -169,9 +169,9 @@ void renderTriangle()
   glUseProgram(shaderProgram);
 
   glm::mat4 vec = glm::mat4(1.0f);
-  //vec = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
- // vec = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-  //vec = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));  
+  //vec = glm::translate(vec, glm::vec3(1.0f, 1.0f, 0.0f));
+  vec = glm::rotate(vec, glm::radians(rot), glm::vec3(1.0f, 1.0f, 1.0f));
+  //vec = glm::scale(vec, glm::vec3(0.5, 0.5, 0.5));  
   unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(vec));
 
@@ -220,18 +220,19 @@ int main()
   ImGui_ImplOpenGL3_Init("#version 150");
   ImGui::StyleColorsDark();
 
-  glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-  glm::mat4 trans = glm::mat4(1.0f);
-  trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
-  trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-  trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));  
-  vec = trans * vec;
-  //std::cout << vec.x << vec.y << vec.z << std::endl;
+  // glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+  // glm::mat4 trans = glm::mat4(1.0f);
+  // trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+  // trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+  // trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));  
+  // vec = trans * vec;
+  // std::cout << vec.x << vec.y << vec.z << std::endl;
 
   glDebugMessageCallback(DebugMessageCallback, nullptr);
   glEnable(GL_DEBUG_OUTPUT);
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   
+  float rotation = 0.0f;
   while (!glfwWindowShouldClose(window))
   {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -245,7 +246,9 @@ int main()
       
     glClearColor(red, 0.0, 0.0, 1.0);
 
-    renderTriangle();
+    renderTriangle(rotation);
+    rotation += 0.1f;
+
 
     ImGui_ImplGlfw_NewFrame();
     ImGui_ImplOpenGL3_NewFrame();
