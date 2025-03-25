@@ -149,7 +149,7 @@ void renderTriangle()
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);  
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-  int vertexShader = LoadShader("C:/Users/azrom/Downloads/opengl-template-main/src/vertex_shader1.glsl", GL_VERTEX_SHADER);
+  int vertexShader = LoadShader("C:/Users/azrom/Downloads/opengl-template-main/src/vertex_shader.glsl", GL_VERTEX_SHADER);
   int fragmentShader = LoadShader("C:/Users/azrom/Downloads/opengl-template-main/src/fragment_shader.glsl", GL_FRAGMENT_SHADER);
 
   unsigned int shaderProgram;
@@ -172,7 +172,7 @@ void renderTriangle()
   //vec = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
  // vec = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
   //vec = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));  
-  unsigned int transformLoc = glGetUniformLocation(vertexShader, "transform");
+  unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(vec));
 
   // 3. bind the VAO we're going to use to switch between different vertex arrays easy

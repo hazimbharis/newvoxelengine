@@ -4,3 +4,6 @@ run mingw32-make -j 10 to compile faster by assignining 10 threads
 if that doesn't work
 run premake5 gmake2 or gmake whichever works
 then run the that again
+
+always check these websites if lost on a function
+https://docs.gl/
