@@ -1,26 +1,32 @@
 #include <glad/glad.h>
 
+// Maths
 #include <glm/common.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// Window library
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+// Quick GUI
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+// Loading image formats
+#define STB_IMAGE_IMPLEMENTATION //modifies header file so only contains the relevant definition source code
+#include <stb_image.h>
+
+// Loading text-based files
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
 void onStart()
 {
-  // Example usage
-  //int vertexShader = LoadShader("vertex_shader.glsl", GL_VERTEX_SHADER);
-  //int fragmentShader = LoadShader("fragment_shader.glsl", GL_FRAGMENT_SHADER);
+  
 }
 
 int LoadShader(const std::string shaderFilePath, GLenum shaderType)
@@ -54,6 +60,7 @@ int LoadShader(const std::string shaderFilePath, GLenum shaderType)
   return shaderID;
 }
 
+// Debug message function for when something goes wrong
 void GLAPIENTRY DebugMessageCallback(
   GLenum source,
   GLenum type,
@@ -115,66 +122,21 @@ void GLAPIENTRY DebugMessageCallback(
     std::cout << "OpenGL Message:" << type << debugMessageStream.str() << std::endl;
 }
 
-void renderTriangle(float rot)
+void renderTriangle(float rot, unsigned int shaderProgram, unsigned int VAO, unsigned int texture)
 {
-  // put in onstart()
-  float vertices[] = {
-    -0.5f, -0.75f, 0.0f, // bottom left vertex
-     0.5f, -0.75f, 0.0f, // bottom right vertex
-     0.5f,  0.75f, 0.0f, // top right vertex
-     -0.5f,  0.75f, 0.0f // top left vertex
-  };
-
-  // put in onstart()
-  unsigned int indices[] = {  // note that we start from 0!
-    0, 1, 3,   // first triangle
-    1, 2, 3    // second triangle
-  };  
-
-  // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
-  unsigned int VAO;
-  glGenVertexArrays(1, &VAO);
-  // 1. bind Vertex Array Object
-  glBindVertexArray(VAO);
-
-  unsigned int VBO;
-  glGenBuffers(1, &VBO);
-  // 0. copy our vertices array in a buffer for OpenGL to use
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);  
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  // we use element buffer objects to reuse vertex to draw triangles with overlapping points
-  unsigned int EBO;
-  glGenBuffers(1, &EBO);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);  
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-  int vertexShader = LoadShader("C:/Users/azrom/Downloads/opengl-template-main/src/vertex_shader.glsl", GL_VERTEX_SHADER);
-  int fragmentShader = LoadShader("C:/Users/azrom/Downloads/opengl-template-main/src/fragment_shader.glsl", GL_FRAGMENT_SHADER);
-
-  unsigned int shaderProgram;
-  shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-  
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);  
-
-    // 1. then set the vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);  
-
   // 2. use our shader program when we want to render an object
   glUseProgram(shaderProgram);
 
   glm::mat4 vec = glm::mat4(1.0f);
   //vec = glm::translate(vec, glm::vec3(1.0f, 1.0f, 0.0f));
+  //vec = glm::rotate(vec, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
   vec = glm::rotate(vec, glm::radians(rot), glm::vec3(1.0f, 1.0f, 1.0f));
   //vec = glm::scale(vec, glm::vec3(0.5, 0.5, 0.5));  
   unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(vec));
 
+  // 2.5 bind texture before drawing
+  glBindTexture(GL_TEXTURE_2D, texture);
   // 3. bind the VAO we're going to use to switch between different vertex arrays easy
   glBindVertexArray(VAO);
   // 4. now draw the object 
@@ -228,6 +190,78 @@ int main()
   // vec = trans * vec;
   // std::cout << vec.x << vec.y << vec.z << std::endl;
 
+  // Initialize all the variables
+  float vertices[] = {
+    -0.5f, -0.75f, 0.0f, 0.0f, 0.0f,  // lower-left corner  
+     0.5f, -0.75f, 0.0f, 1.0f, 0.0f,  // lower-right corner   
+     0.5f,  0.75f, 0.0f, 1.0f, 1.0f,  // top-right corner 
+     -0.5f,  0.75f, 0.0f, 0.0f, 1.0f  // top-left corner 
+  };
+
+  unsigned int indices[] = {  // note that we start from 0!
+    0, 1, 2,   // first triangle
+    2, 3, 0    // second triangle
+  };  
+
+  // Run the initialize buffer functions
+  unsigned int VAO;
+  glGenVertexArrays(1, &VAO);
+  glBindVertexArray(VAO);
+
+  unsigned int VBO;
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);  
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  unsigned int EBO;
+  glGenBuffers(1, &EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);  
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  // Load shaders
+  int vertexShader = LoadShader("C:/Users/azrom/Documents/GitHub/newvoxelengine/src/vertex_shader.glsl", GL_VERTEX_SHADER);
+  int fragmentShader = LoadShader("C:/Users/azrom/Documents/GitHub/newvoxelengine/src/fragment_shader1.glsl", GL_FRAGMENT_SHADER);
+
+  // Create shaderProgram
+  unsigned int shaderProgram;
+  shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+  glLinkProgram(shaderProgram);
+
+  // Delete shaders
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+
+  // Set format for vertexes
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+
+  // Set format for texture coordinates
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  // Set texture parameters
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  // Load texture
+  int width, height, nrChannels;
+  unsigned char *data = stbi_load("C:\\Users\\azrom\\Documents\\GitHub\\newvoxelengine\\textures\\1584743756754853.png", &width, &height, &nrChannels, 0);
+  if (data) {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+      glGenerateMipmap(GL_TEXTURE_2D);
+  } else {
+      std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
+
+
   glDebugMessageCallback(DebugMessageCallback, nullptr);
   glEnable(GL_DEBUG_OUTPUT);
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -246,7 +280,7 @@ int main()
       
     glClearColor(red, 0.0, 0.0, 1.0);
 
-    renderTriangle(rotation);
+    renderTriangle(rotation, shaderProgram, VAO, texture);
     rotation += 0.1f;
 
 

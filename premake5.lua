@@ -42,6 +42,7 @@ project "zim-engine"
       "vendor/glfw/include",
       "vendor/imgui/",
       "vendor/glm",
+      "vendor/stb_image",
    }
 
    links
