@@ -129,8 +129,8 @@ void renderTriangle(float rot, unsigned int shaderProgram, unsigned int VAO, uns
 
   glm::mat4 vec = glm::mat4(1.0f);
   //vec = glm::translate(vec, glm::vec3(1.0f, 1.0f, 0.0f));
-  //vec = glm::rotate(vec, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-  vec = glm::rotate(vec, glm::radians(rot), glm::vec3(1.0f, 1.0f, 1.0f));
+  //vec = glm::rotate(vec, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+  vec = glm::rotate(vec, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
   //vec = glm::scale(vec, glm::vec3(0.5, 0.5, 0.5));  
   unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
   glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(vec));
@@ -199,8 +199,8 @@ int main()
   };
 
   unsigned int indices[] = {  // note that we start from 0!
-    0, 1, 2,   // first triangle
-    2, 3, 0    // second triangle
+    0, 1, 3,   // first triangle
+    1, 2, 3    // second triangle
   };  
 
   // Run the initialize buffer functions
@@ -252,7 +252,8 @@ int main()
 
   // Load texture
   int width, height, nrChannels;
-  unsigned char *data = stbi_load("C:\\Users\\azrom\\Documents\\GitHub\\newvoxelengine\\textures\\1584743756754853.png", &width, &height, &nrChannels, 0);
+  stbi_set_flip_vertically_on_load(true);  
+  unsigned char *data = stbi_load("C:\\Users\\azrom\\Documents\\GitHub\\newvoxelengine\\textures\\GfLpMT4asAYLY8J.png", &width, &height, &nrChannels, 0);
   if (data) {
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
       glGenerateMipmap(GL_TEXTURE_2D);
@@ -281,7 +282,7 @@ int main()
     glClearColor(red, 0.0, 0.0, 1.0);
 
     renderTriangle(rotation, shaderProgram, VAO, texture);
-    rotation += 0.1f;
+    rotation += 0.01f;
 
 
     ImGui_ImplGlfw_NewFrame();
