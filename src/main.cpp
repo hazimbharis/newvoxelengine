@@ -24,6 +24,13 @@
 #include <fstream>
 #include <sstream>
 
+//Global variables - change this later
+float lastX = 400, lastY = 300;
+float yaw = -90.0f;
+float pitch = 0.0f;
+bool firstMouse = true;
+float fov = 45.0f;
+
 void onStart()
 {
   
@@ -122,8 +129,15 @@ void GLAPIENTRY DebugMessageCallback(
     std::cout << "OpenGL Message:" << type << debugMessageStream.str() << std::endl;
 }
 
-void renderTriangle(float rot, unsigned int shaderProgram, unsigned int VAO, unsigned int texture, glm::vec3 cubePositions[])
+void renderTriangle(float rot, unsigned int shaderProgram, unsigned int VAO, unsigned int texture, glm::vec3 cubePositions[], glm::vec3 cameraPos, glm::vec3 cameraUp, glm::vec3* cameraFront)
 {
+  //recalculate camera direction
+  glm::vec3 direction;
+  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  direction.y = sin(glm::radians(pitch));
+  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  *cameraFront = glm::normalize(direction);
+
   // 2. use our shader program when we want to render an object
   glUseProgram(shaderProgram);
 
@@ -142,14 +156,21 @@ void renderTriangle(float rot, unsigned int shaderProgram, unsigned int VAO, uns
   int modelLoc = glGetUniformLocation(shaderProgram, "model");
   glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
-  glm::mat4 view = glm::mat4(1.0f);
+  const float radius = 10.0f;
+  //float camX = sin(glfwGetTime()) * radius;
+  //float camZ = cos(glfwGetTime()) * radius;
+  glm::mat4 view;
+  view = glm::lookAt(cameraPos, cameraPos + *cameraFront, cameraUp);
+
+  // glm::mat4 view = glm::mat4(1.0f);
   // note that we're translating the scene in the reverse direction of where we want to move
-  view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f)); 
+  // view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f)); 
   int viewLoc = glGetUniformLocation(shaderProgram, "view");
   glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
   glm::mat4 projection;
-  projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 1000.0f);
+  //projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 1000.0f);
+  projection = glm::perspective(glm::radians(fov), 800.0f / 600.0f, 0.1f, 100.0f);  // makes it so you're moving forward according to camera fov
   int projectionLoc = glGetUniformLocation(shaderProgram, "projection");
   glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
@@ -175,6 +196,53 @@ void renderTriangle(float rot, unsigned int shaderProgram, unsigned int VAO, uns
   glBindVertexArray(0);
 }
 
+void processInput(GLFWwindow *window, glm::vec3* cameraPos, glm::vec3 cameraUp, glm::vec3 cameraFront, float deltaTime)
+{
+  const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+      glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+      *cameraPos += cameraSpeed * cameraFront;
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+      *cameraPos -= cameraSpeed * cameraFront;
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+      *cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+      *cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+  if (firstMouse) // initially set to true
+  {
+      lastX = xpos;
+      lastY = ypos;
+      firstMouse = false;
+  }
+
+  float xoffset = xpos - lastX;
+  float yoffset = lastY - ypos; // reversed since y-coordinates range from bottom to top
+  lastX = xpos;
+  lastY = ypos;
+
+  const float sensitivity = 0.1f;
+  xoffset *= sensitivity;
+  yoffset *= sensitivity;
+
+  yaw += xoffset;
+  pitch += yoffset;
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f; 
+}
+
+
 int main()
 {
   GLFWwindow* window;
@@ -193,6 +261,9 @@ int main()
   }
 
   glfwMakeContextCurrent(window);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // locks cursor to center of screen
+  glfwSetCursorPosCallback(window, mouse_callback);
+  glfwSetScrollCallback(window, scroll_callback);
 
   if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
   {
@@ -203,6 +274,8 @@ int main()
 
   float red = 0;
   float delta = 0.01;
+  float deltaTime = 0.0f;	// Time between current frame and last frame
+  float lastFrame = 0.0f; // Time of last frame
 
 
   // setup imgui
@@ -211,14 +284,6 @@ int main()
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 150");
   ImGui::StyleColorsDark();
-
-  // glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-  // glm::mat4 trans = glm::mat4(1.0f);
-  // trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
-  // trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-  // trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));  
-  // vec = trans * vec;
-  // std::cout << vec.x << vec.y << vec.z << std::endl;
 
   // Initialize all the variables
   // float vertices[] = {
@@ -271,7 +336,7 @@ int main()
      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
     -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-};
+  };
 
   unsigned int indices[] = {  // note that we start from 0!
     0, 1, 3,   // first triangle
@@ -289,7 +354,29 @@ int main()
     glm::vec3( 1.5f,  2.0f, -2.5f), 
     glm::vec3( 1.5f,  0.2f, -1.5f), 
     glm::vec3(-1.3f,  1.0f, -1.5f)  
-};
+  };
+
+  // camera position
+  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);  
+  glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+  glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+  glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
+  glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+  glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+
+  // glm::vec3 front;
+  // front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  // front.y = sin(glm::radians(pitch));
+  // front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  // cameraFront = glm::normalize(front);
+
+  glm::vec3 direction;
+  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  direction.y = sin(glm::radians(pitch));
+  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  cameraFront = glm::normalize(direction);
+
 
   // Run the initialize buffer functions
   unsigned int VAO;
@@ -353,11 +440,25 @@ int main()
   glDebugMessageCallback(DebugMessageCallback, nullptr);
   glEnable(GL_DEBUG_OUTPUT);
   glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-  glEnable(GL_DEPTH_TEST);  
+  glEnable(GL_DEPTH_TEST); // this makes it so tris have proper z-depth rendering
   
   float rotation = 0.0f;
   while (!glfwWindowShouldClose(window))
   {
+
+    // Camera fixing
+    if(pitch > 89.0f)
+      pitch =  89.0f;
+    if(pitch < -89.0f)
+      pitch = -89.0f;
+
+    // Input
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
+    processInput(window, &cameraPos, cameraUp, cameraFront, deltaTime);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -369,7 +470,7 @@ int main()
       
     glClearColor(red, 0.0, 0.0, 1.0);
 
-    renderTriangle(rotation, shaderProgram, VAO, texture, cubePositions);
+    renderTriangle(rotation, shaderProgram, VAO, texture, cubePositions, cameraPos, cameraUp, &cameraFront);
     rotation += 0.01f;
 
 
