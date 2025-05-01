@@ -30,6 +30,7 @@ float yaw = -90.0f;
 float pitch = 0.0f;
 bool firstMouse = true;
 float fov = 45.0f;
+bool altKeyPressed = false;
 
 void onStart()
 {
@@ -201,6 +202,12 @@ void processInput(GLFWwindow *window, glm::vec3* cameraPos, glm::vec3 cameraUp, 
   const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS) {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      altKeyPressed = true; }
+  if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE) {
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      altKeyPressed = false; }
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
       *cameraPos += cameraSpeed * cameraFront;
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -219,6 +226,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
       lastY = ypos;
       firstMouse = false;
   }
+
+  if (altKeyPressed) {firstMouse = true; return;}
 
   float xoffset = xpos - lastX;
   float yoffset = lastY - ypos; // reversed since y-coordinates range from bottom to top
